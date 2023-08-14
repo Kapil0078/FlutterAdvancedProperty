@@ -7,6 +7,7 @@ import 'package:gallery_saver/gallery_saver.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:share_plus/share_plus.dart';
 
 class DownloadFromUri extends StatefulWidget {
   const DownloadFromUri({super.key});
@@ -105,9 +106,7 @@ class _DownloadFromUriState extends State<DownloadFromUri> {
               onPressed: () async {
                 // final path = await getExternalStorageDirectory();
                 final dir = Directory("/storage/emulated/0/Download");
-
                 debugPrint('dir -> $dir');
-
                 final status = await Permission.storage.request();
                 if (status.isDenied || status.isPermanentlyDenied) {
                   await openAppSettings();
@@ -154,9 +153,48 @@ class _DownloadFromUriState extends State<DownloadFromUri> {
                 );
               },
             ),
+            const SizedBox(height: 10),
+            ActionChip(
+              label: const Text("Share"),
+              onPressed: () async {
+                final dir = await getTemporaryDirectory();
+                final Response response = await Dio().get(
+                  selected,
+                  options: Options(
+                    responseType: ResponseType.bytes,
+                  ),
+                );
+                final file = File("${dir.path}/Image.png"); // import 'dart:io';
+                 file.writeAsBytesSync(Uint8List.fromList(response.data));
+                 debugPrint('==> ${file.path}');
+
+                // Share
+                await Share.shareXFiles(
+                  [XFile(file.path)],
+                );
+              },
+            ),
+
+            const SizedBox(height: 10),
+            ActionChip(
+              label: const Text("Share file from assert"),
+              onPressed: () async {
+                final dir = await getTemporaryDirectory();
+                final byte = (await rootBundle.load("assets/images/download.png")).buffer.asUint8List(); // convert in to Uint8List
+                debugPrint('byte $byte');
+                final file = File("${dir.path}/Image.png") ; // import 'dart:io'
+                await file.writeAsBytes(byte);
+                // Share
+                await Share.shareXFiles(
+                  [XFile(file.path)],
+                );
+              },
+            ),
           ],
         ),
       ),
     );
   }
 }
+
+// https://stackoverflow.com/questions/76003249/platformexception-platformexceptionshare-callback-error-prior-share-sheet-did
